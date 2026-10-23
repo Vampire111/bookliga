@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="uk" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}БукЛіга — Каталог книг & AI Літературний Асистент{% endblock %}</title>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <script>
+    // Django вимагає CSRF-токен для POST-запитів (захист від підроблених запитів з інших сайтів).
+    // Ця обгортка автоматично додає токен до всіх fetch-запитів на наш сайт.
+    (function () {
+      const originalFetch = window.fetch;
+      window.fetch = function (url, options = {}) {
+        const method = (options.method || 'GET').toUpperCase();
+        const sameOrigin = typeof url === 'string' && (url.startsWith('/') || url.startsWith(location.origin));
+        if (method !== 'GET' && sameOrigin) {
+          const match = document.cookie.match(/(?:^|; )csrftoken=([^;]+)/);
+          if (match) options.headers = Object.assign({}, options.headers, {'X-CSRFToken': decodeURIComponent(match[1])});
+        }
+        return originalFetch(url, options);
+      };
+    })();
+  </script>
+
+  <!-- Google Fonts: Literata & Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,600;0,7..72,700;1,7..72,400&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
+            serif: ['"Literata"', 'Georgia', 'serif'],
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      background-color: #0b0f17;
+      color: #f1f5f9;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+    .font-serif-book {
+      font-family: 'Literata', Georgia, serif;
+    }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.6); }
+    ::-webkit-scrollbar-thumb { background: rgba(100, 116, 139, 0.4); border-radius: 9999px; }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col bg-slate-950 text-slate-100 selection:bg-amber-500/30 selection:text-amber-200">
+  <!-- Header / Navigation -->
+  <header class="sticky top-0 z-40 bg-slate-950/85 backdrop-blur-md border-b border-slate-800">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16">
+        <!-- Logo & Title -->
+        <a href="{% url 'catalog' %}" class="flex items-center space-x-3 group cursor-pointer shrink-0 mr-4">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-600 via-amber-500 to-amber-300 flex items-center justify-center shadow-lg shadow-amber-900/30">
+            <i data-lucide="book-open" class="w-5 h-5 text-slate-950 font-bold"></i>
+          </div>
+          <div>
+            <div class="flex items-center space-x-2">
+              <span class="font-serif-book font-bold text-xl tracking-tight text-amber-100 group-hover:text-amber-300 transition">
+                БукЛіга
+              </span>
+              <span class="text-[10px] font-semibold tracking-wider uppercase px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                ШІ-Каталог
+              </span>
+            </div>
+          </div>
+        </a>
+
+        <!-- Desktop Navigation Tabs -->
+        <nav class="hidden md:flex items-center space-x-0.5 xl:space-x-1.5">
+          <a href="{% url 'catalog' %}" class="flex items-center space-x-1.5 px-2.5 xl:px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition {% if request.resolver_match.url_name == 'catalog' %}bg-amber-500/15 text-amber-300 border border-amber-500/30 shadow-sm{% else %}text-slate-300 hover:text-white hover:bg-slate-800/60{% endif %}">
+            <i data-lucide="library" class="w-4 h-4"></i>
+            <span>Каталог</span>
+          </a>
+
+          <a href="{% url 'detective' %}" class="flex items-center space-x-1.5 px-2.5 xl:px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition {% if request.resolver_match.url_name == 'detective' %}bg-indigo-600/25 text-indigo-300 border border-indigo-500/40 shadow-sm{% else %}text-slate-300 hover:text-white hover:bg-slate-800/60{% endif %}">
+            <i data-lucide="sparkles" class="w-4 h-4 text-indigo-400"></i>
+            <span>Детектив сюжету</span>
+            <span class="hidden xl:inline text-[10px] px-1 bg-indigo-500/20 text-indigo-300 rounded border border-indigo-500/30 font-semibold">
+              ШІ
+            </span>
+          </a>
+
+          <a href="{% url 'recommender' %}" class="flex items-center space-x-1.5 px-2.5 xl:px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition {% if request.resolver_match.url_name == 'recommender' %}bg-amber-500/15 text-amber-300 border border-amber-500/30 shadow-sm{% else %}text-slate-300 hover:text-white hover:bg-slate-800/60{% endif %}">
+            <i data-lucide="compass" class="w-4 h-4 text-amber-400"></i>
+            <span>ШІ-Радник</span>
+          </a>
+
+          <a href="{% url 'open_library' %}" class="flex items-center space-x-1.5 px-2.5 xl:px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition {% if request.resolver_match.url_name == 'open_library' %}bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 shadow-sm{% else %}text-slate-300 hover:text-white hover:bg-slate-800/60{% endif %}">
+            <i data-lucide="globe" class="w-4 h-4 text-emerald-400"></i>
+            <span>Open Library</span>
+          </a>
+
+          <a href="{% url 'bookshelf' %}" class="flex items-center space-x-1.5 px-2.5 xl:px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition {% if request.resolver_match.url_name == 'bookshelf' %}bg-amber-500/15 text-amber-300 border border-amber-500/30 shadow-sm{% else %}text-slate-300 hover:text-white hover:bg-slate-800/60{% endif %}">
+            <i data-lucide="book-open" class="w-4 h-4 text-sky-400"></i>
+            <span>Моя полиця</span>
+          </a>
+        </nav>
+
+        <!-- Right actions -->
+        <div class="flex items-center space-x-2">
+          <!-- Add Book Button (Visible on all screens) -->
+          <button onclick="openAddModal()" class="flex items-center space-x-1.5 px-3 py-1.5 whitespace-nowrap bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white rounded-lg text-sm border border-slate-700 transition shadow-sm" title="Додати власну книгу">
+            <i data-lucide="plus-circle" class="w-4 h-4 text-amber-400"></i>
+            <span class="hidden lg:inline">Додати</span>
+          </button>
+
+          <!-- Chat Assistant Button -->
+          <button onclick="toggleChatDrawer()" class="flex items-center space-x-1.5 px-3.5 py-1.5 whitespace-nowrap rounded-lg text-sm font-semibold transition-all shadow-md bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-slate-950">
+            <i data-lucide="message-square" class="w-4 h-4"></i>
+            <span class="hidden sm:inline">ШІ-Асистент</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Mobile Navigation Bar -->
+      <div class="md:hidden flex items-center justify-between py-2 border-t border-slate-800 overflow-x-auto space-x-1">
+        <a href="{% url 'catalog' %}" class="px-2.5 py-1 text-xs rounded-md whitespace-nowrap {% if request.resolver_match.url_name == 'catalog' %}bg-amber-500/20 text-amber-300 font-semibold{% else %}text-slate-400{% endif %}">
+          Каталог
+        </a>
+        <a href="{% url 'detective' %}" class="px-2.5 py-1 text-xs rounded-md whitespace-nowrap flex items-center space-x-1 {% if request.resolver_match.url_name == 'detective' %}bg-indigo-500/20 text-indigo-300 font-semibold{% else %}text-slate-400{% endif %}">
+          <i data-lucide="sparkles" class="w-3 h-3"></i>
+          <span>Детектив</span>
+        </a>
+        <a href="{% url 'recommender' %}" class="px-2.5 py-1 text-xs rounded-md whitespace-nowrap {% if request.resolver_match.url_name == 'recommender' %}bg-amber-500/20 text-amber-300 font-semibold{% else %}text-slate-400{% endif %}">
+          ШІ-Радник
+        </a>
+        <a href="{% url 'open_library' %}" class="px-2.5 py-1 text-xs rounded-md whitespace-nowrap {% if request.resolver_match.url_name == 'open_library' %}bg-emerald-500/20 text-emerald-300 font-semibold{% else %}text-slate-400{% endif %}">
+          Open Library
+        </a>
+        <a href="{% url 'bookshelf' %}" class="px-2.5 py-1 text-xs rounded-md whitespace-nowrap {% if request.resolver_match.url_name == 'bookshelf' %}bg-sky-500/20 text-sky-300 font-semibold{% else %}text-slate-400{% endif %}">
+          Полиця
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+    {% block content %}
+    {% endblock %}
+  </main>
+
+  <!-- Footer (Clean literary branding, no engine/database technical names) -->
+  <footer class="mt-auto border-t border-slate-900 bg-slate-950 py-8 text-center text-xs text-slate-500">
+    <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div class="flex items-center space-x-2">
+        <span class="font-serif-book font-bold text-slate-300">БукЛіга</span>
+        <span>— сучасний каталог книг з інтелектуальним ШІ-асистентом та світовою бібліотекою Open Library</span>
+      </div>
+      <div class="flex items-center space-x-4 text-slate-400">
+        <span>Читання • Аналіз сюжетів • Рекомендації</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Modal: Add Custom Book -->
+  <div id="addBookModal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 max-w-2xl w-full space-y-5 shadow-2xl relative max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div class="flex items-center space-x-2">
+          <i data-lucide="book-plus" class="w-5 h-5 text-amber-400"></i>
+          <div>
+            <h2 class="font-serif-book font-bold text-xl text-white">Додати нову книгу</h2>
+            <p class="text-xs text-slate-400">Книга додасться до каталогу та буде доступна для пошуку й аналізу ШІ</p>
+          </div>
+        </div>
+        <button onclick="closeAddModal()" class="text-slate-400 hover:text-white p-1 rounded-lg">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <form method="POST" action="{% url 'add_book' %}" class="space-y-4 text-xs sm:text-sm">
+        {% csrf_token %}
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-slate-300 font-semibold mb-1">Назва книги *</label>
+            <input type="text" name="title" required placeholder="«Кайдашева сім'я»" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-slate-100 focus:outline-none focus:border-amber-500">
+          </div>
+          <div>
+            <label class="block text-slate-300 font-semibold mb-1">Автор *</label>
+            <input type="text" name="author" required placeholder="Іван Нечуй-Левицький" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-slate-100 focus:outline-none focus:border-amber-500">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div>
+            <label class="block text-slate-300 font-semibold mb-1">Жанр</label>
+            <input type="text" name="genre" value="Класична проза" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-slate-100 focus:outline-none focus:border-amber-500">
+          </div>
+          <div>
+            <label class="block text-slate-300 font-semibold mb-1">Рік видання</label>
+            <input type="number" name="year" value="2024" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-slate-100 focus:outline-none focus:border-amber-500">
+          </div>
+          <div>
+            <label class="block text-slate-300 font-semibold mb-1">Кількість сторінок</label>
+            <input type="number" name="pages" value="250" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-slate-100 focus:outline-none focus:border-amber-500">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-slate-300 font-semibold mb-1">Синопсис / Короткий сюжет</label>
+          <textarea name="description" rows="3" placeholder="Короткий зміст, персонажі, головний конфлікт..." class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-slate-100 focus:outline-none focus:border-amber-500"></textarea>
+        </div>
+
+        <div>
+          <label class="block text-slate-300 font-semibold mb-1">Ключові слова сюжету (через кому)</label>
+          <input type="text" name="keywords" placeholder="Семигори, груша на межі, сварки, Кайдаші" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-slate-100 focus:outline-none focus:border-amber-500">
+        </div>
+
+        <div>
+          <label class="block text-slate-300 font-semibold mb-1">URL обкладинки (необов'язково)</label>
+          <input type="url" name="cover_url" placeholder="https://images.unsplash.com/..." class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-slate-100 focus:outline-none focus:border-amber-500">
+        </div>
+
+        <div class="flex justify-end space-x-3 pt-3 border-t border-slate-800">
+          <button type="button" onclick="closeAddModal()" class="px-4 py-2 rounded-xl border border-slate-700 text-slate-300 hover:text-white">Скасувати</button>
+          <button type="submit" class="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold shadow flex items-center space-x-1.5">
+            <i data-lucide="plus" class="w-4 h-4"></i>
+            <span>Зберегти в каталог</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Slide-over Drawer: Literary AI Assistant -->
+  <div id="chatDrawer" class="fixed inset-y-0 right-0 z-50 w-full sm:w-[480px] bg-slate-900 border-l border-slate-800 shadow-2xl flex flex-col hidden">
+    <!-- Header -->
+    <div class="px-5 py-4 border-b border-slate-800 bg-slate-950/80 flex items-center justify-between">
+      <div class="flex items-center space-x-2.5">
+        <div class="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center text-sm shadow-sm">
+          <i data-lucide="sparkles" class="w-4 h-4 text-amber-400"></i>
+        </div>
+        <div>
+          <h3 class="font-serif-book font-bold text-sm text-white">Літературний ШІ-Асистент</h3>
+          <span class="text-[10px] text-emerald-400 flex items-center space-x-1">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span>Готовий до запитань</span>
+          </span>
+        </div>
+      </div>
+      <div class="flex items-center space-x-1.5">
+        <button onclick="clearChatHistory()" title="Очистити історію чату" class="p-1.5 rounded-lg text-slate-400 hover:text-amber-400 hover:bg-slate-800 transition text-xs flex items-center space-x-1">
+          <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+          <span class="hidden sm:inline text-[11px]">Очистити</span>
+        </button>
+        <button onclick="toggleChatDrawer()" class="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Book Context Banner (if triggered from a specific book) -->
+    <div id="chatBookContextBanner" class="hidden px-4 py-2 bg-indigo-950/50 border-b border-indigo-900/50 flex items-center justify-between text-xs text-indigo-200">
+      <div class="flex items-center space-x-1.5 truncate">
+        <i data-lucide="book-open" class="w-3.5 h-3.5 text-indigo-400 shrink-0"></i>
+        <span class="truncate">Контекст книги: <strong id="chatBookContextTitle" class="text-white"></strong></span>
+      </div>
+      <button onclick="clearChatBookContext()" class="text-indigo-400 hover:text-indigo-200 ml-2 text-xs">Очистити</button>
+    </div>
+
+    <!-- Messages Container -->
+    <div id="chatMessages" class="flex-1 overflow-y-auto p-4 space-y-4">
+      <!-- Default Welcome Message (re-inserted if chat is cleared) -->
+    </div>
+
+    <!-- Suggested questions -->
+    <div class="p-3 border-t border-slate-800/80 bg-slate-950/40 space-y-1.5 text-xs">
+      <span class="text-[11px] text-slate-400 font-medium block">Швидкі запитання:</span>
+      <div class="flex flex-wrap gap-1.5">
+        <button onclick="sendQuickPrompt('Чому твір «Місто» вважають першим урбаністичним романом?')" class="text-[11px] px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700">
+          Чому «Місто» — урбаністичний роман?
+        </button>
+        <button onclick="sendQuickPrompt('У чому філософія виживання у романі «Тигролови»?')" class="text-[11px] px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700">
+          Філософія «Тигроловів»
+        </button>
+        <button onclick="sendQuickPrompt('Поясни ідею логотерапії Віктора Франкла простими словами')" class="text-[11px] px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700">
+          Ідея логотерапії Франкла
+        </button>
+      </div>
+    </div>
+
+    <!-- Input -->
+    <div class="p-3 sm:p-4 border-t border-slate-800 bg-slate-950">
+      <form id="chatForm" onsubmit="handleSendChat(event)" class="flex items-center space-x-2">
+        <input id="chatInput" type="text" placeholder="Запитайте що завгодно про літературу..." class="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-xs sm:text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-amber-500">
+        <button type="submit" class="p-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold transition flex items-center justify-center">
+          <i data-lucide="send" class="w-4 h-4"></i>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    const CHAT_STORAGE_KEY = 'bookliga_ai_chat_history_v1';
+    let chatHistory = [];
+    let activeBookContext = null;
+
+    // Initialize on load
+    document.addEventListener("DOMContentLoaded", function() {
+      loadChatHistory();
+      if (window.lucide) {
+        lucide.createIcons();
+      }
+    });
+
+    function loadChatHistory() {
+      const container = document.getElementById('chatMessages');
+      container.innerHTML = '';
+
+      try {
+        const saved = localStorage.getItem(CHAT_STORAGE_KEY);
+        if (saved) {
+          chatHistory = JSON.parse(saved);
+        }
+      } catch (e) {
+        chatHistory = [];
+      }
+
+      if (!chatHistory || chatHistory.length === 0) {
+        // Welcome default message
+        chatHistory = [];
+        renderWelcomeMessage();
+      } else {
+        chatHistory.forEach(msg => {
+          renderMessageDOM(msg.role, msg.content, msg.catalogBooks || []);
+        });
+      }
+      container.scrollTop = container.scrollHeight;
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function renderWelcomeMessage() {
+      const container = document.getElementById('chatMessages');
+      const welcomeDiv = document.createElement('div');
+      welcomeDiv.className = 'flex items-start space-x-2.5';
+      welcomeDiv.innerHTML = `
+        <div class="w-7 h-7 rounded-full bg-indigo-600/30 text-indigo-300 border border-indigo-500/40 flex items-center justify-center shrink-0 text-xs">
+          <i data-lucide="bot" class="w-3.5 h-3.5 text-indigo-300"></i>
+        </div>
+        <div class="max-w-[85%] rounded-2xl p-3.5 text-xs sm:text-sm leading-relaxed bg-slate-950/90 text-slate-200 border border-slate-800">
+          Вітаю! Я ваш літературний ШІ-асистент. Допоможу проаналізувати сюжет, конфлікти персонажів, історичний контекст книг або знайти приховані сенси. Про яку книгу чи тему хочете дізнатися?
+        </div>
+      `;
+      container.appendChild(welcomeDiv);
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function saveChatHistory() {
+      try {
+        localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(chatHistory));
+      } catch (e) {
+        console.warn('Could not save chat history to localStorage', e);
+      }
+    }
+
+    function clearChatHistory() {
+      localStorage.removeItem(CHAT_STORAGE_KEY);
+      chatHistory = [];
+      loadChatHistory();
+    }
+
+    function openAddModal() {
+      const m = document.getElementById('addBookModal');
+      m.classList.remove('hidden');
+      m.classList.add('flex');
+      if (window.lucide) lucide.createIcons();
+    }
+    function closeAddModal() {
+      const m = document.getElementById('addBookModal');
+      m.classList.add('hidden');
+      m.classList.remove('flex');
+    }
+
+    function toggleChatDrawer() {
+      const d = document.getElementById('chatDrawer');
+      d.classList.toggle('hidden');
+      if (!d.classList.contains('hidden')) {
+        document.getElementById('chatInput').focus();
+        if (window.lucide) lucide.createIcons();
+      }
+    }
+
+    function openChatWithBookContext(title, author) {
+      activeBookContext = { title, author };
+      const banner = document.getElementById('chatBookContextBanner');
+      const titleEl = document.getElementById('chatBookContextTitle');
+      titleEl.innerText = `«${title}» (${author})`;
+      banner.classList.remove('hidden');
+
+      const d = document.getElementById('chatDrawer');
+      d.classList.remove('hidden');
+
+      const promptInput = document.getElementById('chatInput');
+      promptInput.value = `Розкажи про головну ідею та ключових персонажів книги «${title}»`;
+      promptInput.focus();
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function clearChatBookContext() {
+      activeBookContext = null;
+      document.getElementById('chatBookContextBanner').classList.add('hidden');
+    }
+
+    async function handleSendChat(e) {
+      if (e) e.preventDefault();
+      const input = document.getElementById('chatInput');
+      const text = input.value.trim();
+      if (!text) return;
+
+      appendChatMessage('user', text);
+      input.value = '';
+
+      chatHistory.push({ role: 'user', content: text });
+      saveChatHistory();
+
+      const loaderId = appendChatLoader();
+
+      try {
+        const payload = {
+          messages: chatHistory,
+          currentBookContext: activeBookContext
+        };
+        const res = await fetch("{% url 'chat_api' %}", {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        removeChatLoader(loaderId);
+
+        const reply = data.reply || data.error || 'Не вдалося отримати відповідь.';
+        const foundBooks = data.found_catalog_books || [];
+
+        appendChatMessage('assistant', reply, foundBooks);
+        chatHistory.push({ role: 'assistant', content: reply, catalogBooks: foundBooks });
+        saveChatHistory();
+      } catch (err) {
+        removeChatLoader(loaderId);
+        appendChatMessage('assistant', 'Помилка зв\'язку з сервером ШІ.');
+      }
+    }
+
+    function sendQuickPrompt(promptText) {
+      document.getElementById('chatInput').value = promptText;
+      handleSendChat();
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text == null ? '' : String(text);
+      return div.innerHTML.replace(/"/g, '&quot;');
+    }
+
+    function formatTextWithBookLinks(text) {
+      // спочатку екрануємо HTML, щоб текст від ШІ не ламав розмітку,
+      // потім **жирний** і списки з markdown, а назви «в лапках» робимо посиланнями на пошук
+      text = escapeHtml(text)
+        .replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>')
+        .replace(/^\s*[*-]\s+/gm, '• ');
+      return text.replace(/«([^»]+)»/g, function(match, title) {
+        const encTitle = encodeURIComponent(title.trim());
+        return `<a href="/?q=${encTitle}" target="_blank" title="Шукати «${title}» у каталозі сайту (нова вкладка)" class="inline-flex items-center space-x-1 px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-300 hover:bg-amber-500/25 border border-amber-500/30 transition font-medium"><span>«${title}»</span><i data-lucide="external-link" class="w-3 h-3 text-amber-400"></i></a>`;
+      });
+    }
+
+    function renderMessageDOM(role, text, catalogBooks = []) {
+      const container = document.getElementById('chatMessages');
+      const isUser = role === 'user';
+      const msgDiv = document.createElement('div');
+      msgDiv.className = `flex items-start space-x-2.5 ${isUser ? 'flex-row-reverse space-x-reverse' : ''}`;
+
+      let formattedText = isUser ? escapeHtml(text) : formatTextWithBookLinks(text);
+
+      let bookCardsHtml = '';
+      if (!isUser && catalogBooks && catalogBooks.length > 0) {
+        bookCardsHtml = `
+          <div class="mt-3 pt-3 border-t border-slate-800 space-y-2">
+            <div class="text-[11px] font-semibold text-amber-400 flex items-center space-x-1.5">
+              <i data-lucide="book-check" class="w-3.5 h-3.5 text-amber-400"></i>
+              <span>Знайдено у каталозі сайту:</span>
+            </div>
+            <div class="grid grid-cols-1 gap-2">
+              ${catalogBooks.map(b => `
+                <div class="flex items-center justify-between p-2 rounded-xl bg-slate-900 border border-slate-700/80 hover:border-amber-500/50 transition">
+                  <div class="flex items-center space-x-2.5 min-w-0 pr-2">
+                    <div class="w-7 h-10 rounded bg-slate-800 border border-slate-700 overflow-hidden shrink-0 flex items-center justify-center">
+                      ${b.cover_url ? `<img src="${b.cover_url}" class="w-full h-full object-cover">` : `<i data-lucide="book" class="w-3.5 h-3.5 text-slate-500"></i>`}
+                    </div>
+                    <div class="min-w-0">
+                      <h5 class="text-xs font-bold text-white truncate">${escapeHtml(b.title)}</h5>
+                      <p class="text-[10px] text-slate-400 truncate">${escapeHtml(b.author)}</p>
+                    </div>
+                  </div>
+                  <a href="/book/${b.id}/" target="_blank" class="shrink-0 px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500 text-amber-300 hover:text-slate-950 font-semibold text-[11px] border border-amber-500/30 transition flex items-center space-x-1">
+                    <span>Відкрити</span>
+                    <i data-lucide="arrow-up-right" class="w-3 h-3"></i>
+                  </a>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      }
+
+      // Action bar below assistant message:
+      let actionFooterHtml = '';
+      if (!isUser) {
+        actionFooterHtml = `
+          <div class="mt-2.5 flex items-center gap-2 flex-wrap text-[10px] text-slate-400">
+            <span class="text-slate-500">Пошук книг:</span>
+            <a href="/open-library/" target="_blank" class="hover:text-emerald-400 inline-flex items-center space-x-1 underline decoration-slate-600">
+              <i data-lucide="globe" class="w-3 h-3"></i>
+              <span>Світова Open Library</span>
+            </a>
+          </div>
+        `;
+      }
+
+      msgDiv.innerHTML = `
+        <div class="w-7 h-7 rounded-full flex items-center justify-center shrink-0 text-xs ${isUser ? 'bg-amber-500 text-slate-950 font-bold' : 'bg-indigo-600/30 text-indigo-300 border border-indigo-500/40'}">
+          <i data-lucide="${isUser ? 'user' : 'bot'}" class="w-3.5 h-3.5"></i>
+        </div>
+        <div class="max-w-[85%] rounded-2xl p-3.5 text-xs sm:text-sm leading-relaxed ${isUser ? 'bg-amber-500 text-slate-950 font-medium' : 'bg-slate-950/90 text-slate-200 border border-slate-800'}">
+          <div class="whitespace-pre-line">${formattedText}</div>
+          ${bookCardsHtml}
+          ${actionFooterHtml}
+        </div>
+      `;
+
+      container.appendChild(msgDiv);
+      container.scrollTop = container.scrollHeight;
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function appendChatMessage(role, text, catalogBooks = []) {
+      renderMessageDOM(role, text, catalogBooks);
+    }
+
+    function appendChatLoader() {
+      const container = document.getElementById('chatMessages');
+      const id = 'loader-' + Date.now();
+      const loaderDiv = document.createElement('div');
+      loaderDiv.id = id;
+      loaderDiv.className = 'flex items-start space-x-2.5';
+      loaderDiv.innerHTML = `
+        <div class="w-7 h-7 rounded-full bg-indigo-600/30 text-indigo-300 border border-indigo-500/40 flex items-center justify-center shrink-0 text-xs">
+          <i data-lucide="bot" class="w-3.5 h-3.5"></i>
+        </div>
+        <div class="bg-slate-950/90 text-slate-400 border border-slate-800 rounded-2xl p-3 text-xs flex items-center space-x-2">
+          <svg class="animate-spin h-3.5 w-3.5 text-amber-400" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg>
+          <span>Аналізую літературні джерела...</span>
+        </div>
+      `;
+      container.appendChild(loaderDiv);
+      container.scrollTop = container.scrollHeight;
+      if (window.lucide) lucide.createIcons();
+      return id;
+    }
+
+    function removeChatLoader(id) {
+      const el = document.getElementById(id);
+      if (el) el.remove();
+    }
+  </script>
+</body>
+</html>

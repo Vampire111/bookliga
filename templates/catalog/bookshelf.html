@@ -1,0 +1,113 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto space-y-8 pb-16">
+  <!-- Header -->
+  <div class="rounded-3xl bg-gradient-to-br from-slate-900 via-slate-900 to-slate-950 border border-slate-800 p-6 sm:p-10 shadow-2xl">
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
+      <div>
+        <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-sky-500/20 text-sky-300 border border-sky-500/30 text-xs font-semibold mb-3">
+          <i data-lucide="book-open" class="w-3.5 h-3.5"></i>
+          <span>Читацький щоденник</span>
+        </div>
+        <h1 class="font-serif-book text-3xl sm:text-4xl font-bold text-white">
+          Моя книжкова полиця
+        </h1>
+        <p class="text-slate-400 text-sm mt-1 max-w-xl">
+          Відстежуйте свій читацький прогрес для навчання та саморозвитку, формуйте списки бажаного й фіксуйте результати.
+        </p>
+      </div>
+
+      <!-- Stats Grid -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div class="p-3.5 rounded-2xl bg-slate-950/80 border border-slate-800 text-center">
+          <span class="text-2xl font-bold text-sky-400 font-serif-book">{{ reading|length }}</span>
+          <p class="text-[11px] text-slate-400 uppercase tracking-wider mt-1">Читаю</p>
+        </div>
+        <div class="p-3.5 rounded-2xl bg-slate-950/80 border border-slate-800 text-center">
+          <span class="text-2xl font-bold text-amber-400 font-serif-book">{{ want_to_read|length }}</span>
+          <p class="text-[11px] text-slate-400 uppercase tracking-wider mt-1">У планах</p>
+        </div>
+        <div class="p-3.5 rounded-2xl bg-slate-950/80 border border-slate-800 text-center">
+          <span class="text-2xl font-bold text-emerald-400 font-serif-book">{{ completed|length }}</span>
+          <p class="text-[11px] text-slate-400 uppercase tracking-wider mt-1">Прочитано</p>
+        </div>
+        <div class="p-3.5 rounded-2xl bg-slate-950/80 border border-slate-800 text-center">
+          <span class="text-2xl font-bold text-amber-200 font-serif-book">{{ total_pages }}</span>
+          <p class="text-[11px] text-slate-400 uppercase tracking-wider mt-1" title="Сума сторінок книг зі статусом «Прочитано»">Сторінок прочитано</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Content Sections -->
+  <div class="bg-slate-900 rounded-2xl border border-slate-800 p-6 space-y-8">
+    <div class="flex items-center justify-between border-b border-slate-800 pb-4">
+      <h3 class="font-serif-book text-xl font-bold text-white flex items-center space-x-2">
+        <i data-lucide="library" class="w-5 h-5 text-amber-400"></i>
+        <span>Книги на вашій полиці</span>
+      </h3>
+      <a href="{% url 'catalog' %}" class="text-xs text-amber-400 hover:text-amber-300 font-medium">
+        + Знайти ще книги в каталозі
+      </a>
+    </div>
+
+    {% if has_books %}
+      {% for section in sections %}{% if section.items %}
+        <div class="space-y-4">
+          <h4 class="text-sm font-semibold uppercase tracking-wider text-{{ section.color }}-400 flex items-center space-x-2">
+            <i data-lucide="{{ section.icon }}" class="w-4 h-4"></i>
+            <span>{{ section.title }} ({{ section.items|length }})</span>
+          </h4>
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {% for s in section.items %}
+              <div class="p-4 rounded-2xl bg-slate-950 border border-{{ section.color }}-800/40 flex flex-col justify-between space-y-3 shadow-md">
+                <div>
+                  <h5 class="font-serif-book font-bold text-white text-base line-clamp-1">«{{ s.book.title }}»</h5>
+                  <p class="text-xs text-slate-400 line-clamp-1 italic">{{ s.book.author }}</p>
+                  {% if s.book.pages %}<p class="text-xs text-slate-500 mt-1">{{ s.book.pages }} с.</p>{% endif %}
+                </div>
+                <select onchange="changeShelfStatus({{ s.book.id }}, this.value)" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-amber-500">
+                  {% for value, label in shelf_choices %}
+                    <option value="{{ value }}" {% if value == s.status %}selected{% endif %}>{% if value == 'none' %}Прибрати з полиці{% else %}{{ label }}{% endif %}</option>
+                  {% endfor %}
+                </select>
+                <div class="pt-2 border-t border-slate-800 flex items-center justify-between">
+                  <a href="{% url 'book_detail' s.book.id %}" class="text-xs text-{{ section.color }}-400 hover:text-{{ section.color }}-300 font-medium">Деталі →</a>
+                  <button onclick="openChatWithBookContext('{{ s.book.title|escapejs }}', '{{ s.book.author|escapejs }}')" class="text-xs text-amber-400 hover:text-amber-300 flex items-center space-x-1">
+                    <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+                    <span>ШІ</span>
+                  </button>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      {% endif %}{% endfor %}
+
+    {% else %}
+      <div class="text-center py-16 bg-slate-950/50 rounded-2xl border border-slate-800 p-8 space-y-4">
+        <i data-lucide="book-open" class="w-12 h-12 text-slate-600 mx-auto"></i>
+        <h4 class="font-serif-book font-bold text-lg text-white">Ваша книжкова полиця наразі порожня</h4>
+        <p class="text-xs text-slate-400 max-w-md mx-auto">
+          Перейдіть до каталогу та додайте книги у свій список читання кнопкою закладки на обкладинці або виберіть статус на сторінці книги.
+        </p>
+        <a href="{% url 'catalog' %}" class="inline-flex items-center space-x-2 px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold text-xs transition shadow">
+          <i data-lucide="library" class="w-4 h-4"></i>
+          <span>Перейти до каталогу книг</span>
+        </a>
+      </div>
+    {% endif %}
+  </div>
+</div>
+<script>
+  async function changeShelfStatus(bookId, status) {
+    await fetch("{% url 'update_status' %}", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ book_id: bookId, status: status })
+    });
+    location.reload();  // книга переходить в інший розділ
+  }
+</script>
+{% endblock %}

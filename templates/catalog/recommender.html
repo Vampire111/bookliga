@@ -1,0 +1,523 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-8 pb-16">
+  <!-- Recommender Header -->
+  <div class="rounded-3xl bg-gradient-to-br from-amber-950/60 via-slate-900 to-slate-950 border border-amber-800/40 p-6 sm:p-10 shadow-2xl relative overflow-hidden">
+    <div class="absolute right-0 top-0 w-80 h-80 bg-amber-500/10 rounded-full blur-3xl pointer-events-none -mr-16 -mt-16"></div>
+    <div class="relative z-10 space-y-4">
+      <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs font-semibold">
+        <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+        <span>Персоналізований ШІ-підбір</span>
+      </div>
+
+      <h1 class="font-serif-book text-3xl sm:text-4xl font-bold text-white tracking-tight">
+        Що почитати сьогодні?
+      </h1>
+
+      <p class="text-slate-300 text-sm sm:text-base max-w-2xl leading-relaxed">
+        Оберіть свій сьогоднішній настрій або опишіть, яку емоцію ви шукаєте. ШІ підбере книги з нашого
+        каталогу, а також порекомендує приховані скарби зі світової літератури.
+      </p>
+    </div>
+  </div>
+
+  <!-- Interactive Controls Card -->
+  <div class="bg-slate-900/90 rounded-2xl border border-slate-800 p-5 sm:p-6 space-y-6 shadow-xl">
+    <form id="recommenderForm" method="POST" action="{% url 'recommender' %}" onsubmit="handleFormSubmit(event)">
+      {% csrf_token %}
+      <input type="hidden" name="mood" id="hiddenMood" value="{{ selected_mood|default:'Затишок, спокій, рефлексія' }}">
+      <input type="hidden" name="genre" id="hiddenGenre" value="{{ selected_genre|default:'Будь-який' }}">
+
+      <!-- 1. Mood Selector Grid -->
+      <div class="space-y-3">
+        <label class="block text-sm font-semibold text-slate-200">
+          1. Який у вас зараз настрій?
+        </label>
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5" id="moodGrid">
+          <button type="button" data-mood="Затишок, спокій, рефлексія" onclick="selectMood('Затишок, спокій, рефлексія', this)" class="mood-btn p-3 rounded-xl border text-left text-xs font-medium flex items-center space-x-2.5 transition-all bg-amber-500/20 text-amber-200 border-amber-500/50 shadow-md ring-1 ring-amber-500/30">
+            <i data-lucide="coffee" class="w-4 h-4 shrink-0 text-amber-400"></i>
+            <span class="line-clamp-1">☕ Затишок і душевність</span>
+          </button>
+          
+          <button type="button" data-mood="Гостросюжетний трилер, драйв, небезпека" onclick="selectMood('Гостросюжетний трилер, драйв, небезпека', this)" class="mood-btn p-3 rounded-xl border text-left text-xs font-medium flex items-center space-x-2.5 transition-all bg-slate-950/70 hover:bg-slate-800/60 text-slate-300 border-slate-800">
+            <i data-lucide="zap" class="w-4 h-4 shrink-0 text-slate-400"></i>
+            <span class="line-clamp-1">⚡ Адреналін і напруга</span>
+          </button>
+
+          <button type="button" data-mood="Глибокий сенс буття, психологія, інтелектуальний виклик" onclick="selectMood('Глибокий сенс буття, психологія, інтелектуальний виклик', this)" class="mood-btn p-3 rounded-xl border text-left text-xs font-medium flex items-center space-x-2.5 transition-all bg-slate-950/70 hover:bg-slate-800/60 text-slate-300 border-slate-800">
+            <i data-lucide="compass" class="w-4 h-4 shrink-0 text-slate-400"></i>
+            <span class="line-clamp-1">🧠 Філософські роздуми</span>
+          </button>
+
+          <button type="button" data-mood="Наукова фантастика, космос, магія, епос" onclick="selectMood('Наукова фантастика, космос, магія, епос', this)" class="mood-btn p-3 rounded-xl border text-left text-xs font-medium flex items-center space-x-2.5 transition-all bg-slate-950/70 hover:bg-slate-800/60 text-slate-300 border-slate-800">
+            <i data-lucide="globe" class="w-4 h-4 shrink-0 text-slate-400"></i>
+            <span class="line-clamp-1">🌌 Втеча у незвідані світи</span>
+          </button>
+
+          <button type="button" data-mood="Українська незламність, історія, автентичність" onclick="selectMood('Українська незламність, історія, автентичність', this)" class="mood-btn p-3 rounded-xl border text-left text-xs font-medium flex items-center space-x-2.5 transition-all bg-slate-950/70 hover:bg-slate-800/60 text-slate-300 border-slate-800">
+            <i data-lucide="shield" class="w-4 h-4 shrink-0 text-slate-400"></i>
+            <span class="line-clamp-1">🇺🇦 Сила українського духу</span>
+          </button>
+
+          <button type="button" data-mood="Драматичне кохання, емоційний вир" onclick="selectMood('Драматичне кохання, емоційний вир', this)" class="mood-btn p-3 rounded-xl border text-left text-xs font-medium flex items-center space-x-2.5 transition-all bg-slate-950/70 hover:bg-slate-800/60 text-slate-300 border-slate-800">
+            <i data-lucide="flame" class="w-4 h-4 shrink-0 text-slate-400"></i>
+            <span class="line-clamp-1">🔥 Пристрасть і внутрішній вогонь</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- 2. Genre Selector -->
+      <div class="space-y-2 pt-4">
+        <label class="block text-sm font-semibold text-slate-200">
+          2. Бажаний жанр (за бажанням):
+        </label>
+        <div class="flex flex-wrap gap-2" id="genreContainer">
+          {% for g in genres %}
+            <button type="button" data-genre="{{ g }}" onclick="selectGenre('{{ g }}', this)" class="genre-btn px-3 py-1.5 rounded-lg text-xs font-medium border transition-all {% if selected_genre == g or forloop.first and not selected_genre %}bg-indigo-600/30 text-indigo-200 border-indigo-500/50{% else %}bg-slate-950/60 text-slate-400 border-slate-800 hover:text-slate-200{% endif %}">
+              {{ g }}
+            </button>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- 3. Custom prompt text & Quick suggestions -->
+      <div class="space-y-2 pt-4">
+        <label class="block text-sm font-semibold text-slate-200">
+          3. Додаткові побажання чи деталі:
+        </label>
+        <input
+          type="text"
+          id="promptInput"
+          name="prompt"
+          value="{{ prompt }}"
+          placeholder="Наприклад: щось схоже за атмосферою на Дюну, але з динамічнішим сюжетом..."
+          class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-amber-500 text-sm transition"
+        />
+
+        <!-- Quick suggestions -->
+        <div class="pt-1 flex flex-wrap gap-1.5">
+          <button type="button" onclick="setQuickPrompt('Порадь книгу про протистояння сильної особистості та тоталітарної системи')" class="text-[11px] px-2.5 py-1 rounded-md bg-slate-800/60 hover:bg-slate-800 text-slate-400 hover:text-slate-200 border border-slate-700/60 transition">
+            Порадь книгу про протистояння сильної особистості та тоталітарної системи
+          </button>
+          <button type="button" onclick="setQuickPrompt('Щось дуже захоплююче, щоб не спати всю ніч')" class="text-[11px] px-2.5 py-1 rounded-md bg-slate-800/60 hover:bg-slate-800 text-slate-400 hover:text-slate-200 border border-slate-700/60 transition">
+            Щось дуже захоплююче, щоб не спати всю ніч
+          </button>
+          <button type="button" onclick="setQuickPrompt('Найкраще з української класики для сучасного читача')" class="text-[11px] px-2.5 py-1 rounded-md bg-slate-800/60 hover:bg-slate-800 text-slate-400 hover:text-slate-200 border border-slate-700/60 transition">
+            Найкраще з української класики для сучасного читача
+          </button>
+          <button type="button" onclick="setQuickPrompt('Книгу, яка змушує по-новому подивитися на життя і сенс буття')" class="text-[11px] px-2.5 py-1 rounded-md bg-slate-800/60 hover:bg-slate-800 text-slate-400 hover:text-slate-200 border border-slate-700/60 transition">
+            Книгу, яка змушує по-новому подивитися на життя і сенс буття
+          </button>
+          <button type="button" onclick="setQuickPrompt('Тверда наукова фантастика про виживання людини наодинці з космосом')" class="text-[11px] px-2.5 py-1 rounded-md bg-slate-800/60 hover:bg-slate-800 text-slate-400 hover:text-slate-200 border border-slate-700/60 transition">
+            Тверда наукова фантастика про виживання людини наодинці з космосом
+          </button>
+        </div>
+      </div>
+
+      <!-- Submit button -->
+      <div class="pt-4 flex justify-end">
+        <button
+          type="submit"
+          id="recSubmitBtn"
+          class="flex items-center space-x-2 px-6 py-2.5 rounded-xl font-semibold text-sm transition-all shadow-lg bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-slate-950 disabled:opacity-50"
+        >
+          <i data-lucide="compass" class="w-4 h-4"></i>
+          <span id="recSubmitText">Отримати персональні рекомендації</span>
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Error display -->
+  <div id="errorContainer" class="{% if not error %}hidden{% endif %} p-4 rounded-xl bg-rose-950/60 border border-rose-800 text-rose-200 text-sm flex items-center space-x-2 shadow-lg">
+    <i data-lucide="alert-circle" class="w-5 h-5 text-rose-400 shrink-0"></i>
+    <span id="errorText">{{ error }}</span>
+  </div>
+
+  <!-- Loading Indicator during AJAX -->
+  <div id="ajaxLoadingIndicator" class="hidden p-8 rounded-2xl bg-slate-900 border border-amber-500/30 text-center space-y-3 shadow-xl">
+    <div class="flex justify-center">
+      <svg class="animate-spin h-8 w-8 text-amber-400" viewBox="0 0 24 24" fill="none">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+      </svg>
+    </div>
+    <h3 class="text-white font-semibold">ШІ підбирає найкраще...</h3>
+    <p class="text-xs text-slate-400">Аналізуємо каталог та скарби світової літератури під ваш настрій</p>
+  </div>
+
+  <!-- Results Section -->
+  <div id="resultsContainer" class="space-y-8 {% if not result %}hidden{% endif %}">
+    {% if result %}
+      <!-- AI Intro commentary -->
+      <div class="p-5 rounded-2xl bg-slate-900 border border-amber-500/30 shadow-lg" id="advisorIntroCard">
+        <h3 class="font-serif-book font-bold text-lg text-amber-200 mb-2 flex items-center space-x-2">
+          <i data-lucide="sparkles" class="w-4 h-4 text-amber-400"></i>
+          <span>Порада літературного наставника:</span>
+        </h3>
+        <p class="text-sm text-slate-300 leading-relaxed italic" id="advisorExplanationText">
+          {{ result.explanation }}
+        </p>
+      </div>
+
+      <!-- Catalog Recommendations -->
+      {% if result.catalogRecommendations %}
+        <div class="space-y-4" id="catalogRecsSection">
+          <div class="flex items-center space-x-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
+            <h3 class="font-serif-book text-xl font-bold text-white">
+              Знайдено у вашому каталозі
+            </h3>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="catalogCardsGrid">
+            {% for rec in result.catalogRecommendations %}
+              <div class="p-5 rounded-2xl bg-slate-900 border border-slate-800 hover:border-amber-500/50 transition-all flex flex-col justify-between space-y-4 shadow-md">
+                <div>
+                  <div class="flex items-center justify-between">
+                    <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                      В базі ({{ rec.matchScore }}% збіг)
+                    </span>
+                    {% if rec.book_obj %}
+                      <span class="text-xs text-slate-400 font-medium">
+                        {{ rec.book_obj.genre }}
+                      </span>
+                    {% endif %}
+                  </div>
+
+                  <h4 class="font-serif-book font-bold text-xl text-white mt-2">
+                    «{{ rec.title }}»
+                  </h4>
+                  <p class="text-sm text-amber-300/90 font-serif-book italic mt-0.5">
+                    {{ rec.author }}
+                  </p>
+
+                  <p class="text-xs text-slate-300 mt-3 leading-relaxed bg-slate-950/60 p-3 rounded-xl border border-slate-800">
+                    {{ rec.whyRecommended }}
+                  </p>
+                </div>
+
+                {% if rec.book_obj %}
+                  <a
+                    href="{% url 'book_detail' rec.book_obj.id %}"
+                    class="w-full py-2 px-3 rounded-xl bg-slate-800 hover:bg-amber-500/20 text-amber-300 border border-slate-700 hover:border-amber-500/40 text-xs font-semibold flex items-center justify-center space-x-1.5 transition"
+                  >
+                    <i data-lucide="book-open" class="w-3.5 h-3.5"></i>
+                    <span>Відкрити повний опис та відгуки</span>
+                  </a>
+                {% endif %}
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      {% endif %}
+
+      <!-- External Recommendations -->
+      {% if result.externalRecommendations %}
+        <div class="space-y-4" id="externalRecsSection">
+          <div class="flex items-center space-x-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-sky-400"></span>
+            <h3 class="font-serif-book text-xl font-bold text-white">
+              Світові відкриття (поза поточною базою)
+            </h3>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="externalCardsGrid">
+            {% for ext in result.externalRecommendations %}
+              <div class="p-5 rounded-2xl bg-slate-900 border border-slate-800 hover:border-sky-500/50 transition-all flex flex-col justify-between space-y-4 shadow-md">
+                <div>
+                  <div class="flex items-center justify-between">
+                    <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-sky-500/20 text-sky-300 border border-sky-500/30">
+                      Світова література
+                    </span>
+                    <span class="text-xs text-slate-400">{{ ext.genre }}{% if ext.verified is False %} <span class="text-amber-400">⚠ не знайдено в Open Library</span>{% endif %}</span>
+                  </div>
+
+                  <h4 class="font-serif-book font-bold text-xl text-white mt-2">
+                    «{{ ext.title }}»
+                  </h4>
+                  <p class="text-sm text-sky-300/90 font-serif-book italic mt-0.5">
+                    {{ ext.author }} {% if ext.year %}({{ ext.year|default:"—" }} р.){% endif %}
+                  </p>
+
+                  <p class="text-xs text-slate-400 mt-2 line-clamp-2">
+                    {{ ext.description }}
+                  </p>
+
+                  <p class="text-xs text-slate-300 mt-3 leading-relaxed bg-slate-950/60 p-3 rounded-xl border border-slate-800">
+                    <span class="text-sky-400 font-semibold block mb-0.5">Чому варто прочитати:</span>
+                    {{ ext.whyRecommended }}
+                  </p>
+                </div>
+
+                <a
+                  href="{% url 'open_library' %}?q={{ ext.searchQuery|default:ext.title|urlencode }}"
+                  class="w-full py-2 px-3 rounded-xl bg-sky-600/20 hover:bg-sky-600/30 text-sky-200 border border-sky-500/40 text-xs font-semibold flex items-center justify-center space-x-1.5 transition"
+                >
+                  <i data-lucide="external-link" class="w-3.5 h-3.5 text-sky-400"></i>
+                  <span>Знайти та завантажити з Open Library</span>
+                </a>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      {% endif %}
+    {% endif %}
+  </div>
+</div>
+
+<script>
+  let currentMood = document.getElementById('hiddenMood').value;
+  let currentGenre = document.getElementById('hiddenGenre').value;
+
+  function selectMood(moodVal, btn) {
+    currentMood = moodVal;
+    document.getElementById('hiddenMood').value = moodVal;
+    
+    document.querySelectorAll('.mood-btn').forEach(b => {
+      b.className = 'mood-btn p-3 rounded-xl border text-left text-xs font-medium flex items-center space-x-2.5 transition-all bg-slate-950/70 hover:bg-slate-800/60 text-slate-300 border-slate-800';
+      const icon = b.querySelector('i');
+      if (icon) icon.className = icon.className.replace('text-amber-400', 'text-slate-400');
+    });
+
+    btn.className = 'mood-btn p-3 rounded-xl border text-left text-xs font-medium flex items-center space-x-2.5 transition-all bg-amber-500/20 text-amber-200 border-amber-500/50 shadow-md ring-1 ring-amber-500/30';
+    const activeIcon = btn.querySelector('i');
+    if (activeIcon) activeIcon.className = activeIcon.className.replace('text-slate-400', 'text-amber-400');
+  }
+
+  function selectGenre(genreVal, btn) {
+    currentGenre = genreVal;
+    document.getElementById('hiddenGenre').value = genreVal;
+
+    document.querySelectorAll('.genre-btn').forEach(b => {
+      b.className = 'genre-btn px-3 py-1.5 rounded-lg text-xs font-medium border transition-all bg-slate-950/60 text-slate-400 border-slate-800 hover:text-slate-200';
+    });
+
+    btn.className = 'genre-btn px-3 py-1.5 rounded-lg text-xs font-medium border transition-all bg-indigo-600/30 text-indigo-200 border-indigo-500/50';
+  }
+
+  function setQuickPrompt(text) {
+    document.getElementById('promptInput').value = text;
+    // Execute search immediately
+    executeRecommend();
+  }
+
+  function handleFormSubmit(e) {
+    e.preventDefault();
+    executeRecommend();
+  }
+
+  async function executeRecommend() {
+    const btn = document.getElementById('recSubmitBtn');
+    const btnText = document.getElementById('recSubmitText');
+    const promptVal = document.getElementById('promptInput').value;
+    const moodVal = document.getElementById('hiddenMood').value;
+    const genreVal = document.getElementById('hiddenGenre').value;
+    const errorBox = document.getElementById('errorContainer');
+    const resultsContainer = document.getElementById('resultsContainer');
+    const loadingIndicator = document.getElementById('ajaxLoadingIndicator');
+
+    // UI Loading state
+    btn.disabled = true;
+    btn.innerHTML = `<svg class="animate-spin h-4 w-4 text-slate-950 shrink-0" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg><span>ШІ підбирає найкраще...</span>`;
+    
+    errorBox.classList.add('hidden');
+    resultsContainer.classList.add('hidden');
+    loadingIndicator.classList.remove('hidden');
+
+    try {
+      const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+      const response = await fetch("{% url 'recommender' %}", {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': csrfToken,
+          'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify({
+          prompt: promptVal,
+          mood: moodVal,
+          genre: genreVal
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Помилка сервера (${response.status})`);
+      }
+
+      const data = await response.json();
+      loadingIndicator.classList.add('hidden');
+
+      if (data.error && (!data.catalogRecommendations || data.catalogRecommendations.length === 0) && (!data.externalRecommendations || data.externalRecommendations.length === 0)) {
+        document.getElementById('errorText').textContent = data.error;
+        errorBox.classList.remove('hidden');
+        return;
+      }
+
+      // Render Results
+      renderDynamicResults(data);
+      resultsContainer.classList.remove('hidden');
+      resultsContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    } catch (err) {
+      console.error(err);
+      loadingIndicator.classList.add('hidden');
+      document.getElementById('errorText').textContent = err.message || 'Сталася помилка при зверненні до ШІ-порадника. Спробуйте ще раз.';
+      errorBox.classList.remove('hidden');
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = `<i data-lucide="compass" class="w-4 h-4"></i><span>Отримати персональні рекомендації</span>`;
+      if (window.lucide) lucide.createIcons();
+    }
+  }
+
+  function renderDynamicResults(data) {
+    const container = document.getElementById('resultsContainer');
+    let html = `
+      <!-- AI Intro commentary -->
+      <div class="p-5 rounded-2xl bg-slate-900 border border-amber-500/30 shadow-lg">
+        <h3 class="font-serif-book font-bold text-lg text-amber-200 mb-2 flex items-center space-x-2">
+          <i data-lucide="sparkles" class="w-4 h-4 text-amber-400"></i>
+          <span>Порада літературного наставника:</span>
+        </h3>
+        <p class="text-sm text-slate-300 leading-relaxed italic">
+          ${escapeHtml(data.explanation || 'Добірка складена відповідно до вашого запиту.')}
+        </p>
+      </div>
+    `;
+
+    if (data.catalogRecommendations && data.catalogRecommendations.length > 0) {
+      html += `
+        <div class="space-y-4">
+          <div class="flex items-center space-x-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
+            <h3 class="font-serif-book text-xl font-bold text-white">
+              Знайдено у вашому каталозі
+            </h3>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      `;
+
+      data.catalogRecommendations.forEach(rec => {
+        html += `
+          <div class="p-5 rounded-2xl bg-slate-900 border border-slate-800 hover:border-amber-500/50 transition-all flex flex-col justify-between space-y-4 shadow-md">
+            <div>
+              <div class="flex items-center justify-between">
+                <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                  В базі (${rec.matchScore || 90}% збіг)
+                </span>
+                ${rec.genre ? `<span class="text-xs text-slate-400 font-medium">${escapeHtml(rec.genre)}</span>` : ''}
+              </div>
+
+              <h4 class="font-serif-book font-bold text-xl text-white mt-2">
+                «${escapeHtml(rec.title)}»
+              </h4>
+              <p class="text-sm text-amber-300/90 font-serif-book italic mt-0.5">
+                ${escapeHtml(rec.author)}
+              </p>
+
+              <p class="text-xs text-slate-300 mt-3 leading-relaxed bg-slate-950/60 p-3 rounded-xl border border-slate-800">
+                ${escapeHtml(rec.whyRecommended)}
+              </p>
+            </div>
+
+            ${rec.book_id ? `
+              <a
+                href="/book/${rec.book_id}/"
+                class="w-full py-2 px-3 rounded-xl bg-slate-800 hover:bg-amber-500/20 text-amber-300 border border-slate-700 hover:border-amber-500/40 text-xs font-semibold flex items-center justify-center space-x-1.5 transition"
+              >
+                <i data-lucide="book-open" class="w-3.5 h-3.5"></i>
+                <span>Відкрити повний опис та відгуки</span>
+              </a>
+            ` : ''}
+          </div>
+        `;
+      });
+
+      html += `</div></div>`;
+    }
+
+    if (data.externalRecommendations && data.externalRecommendations.length > 0) {
+      html += `
+        <div class="space-y-4">
+          <div class="flex items-center space-x-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-sky-400"></span>
+            <h3 class="font-serif-book text-xl font-bold text-white">
+              Світові відкриття (поза поточною базою)
+            </h3>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      `;
+
+      data.externalRecommendations.forEach(ext => {
+        const query = encodeURIComponent(ext.searchQuery || `${ext.title} ${ext.author}`);
+        html += `
+          <div class="p-5 rounded-2xl bg-slate-900 border border-slate-800 hover:border-sky-500/50 transition-all flex flex-col justify-between space-y-4 shadow-md">
+            <div>
+              <div class="flex items-center justify-between">
+                <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-sky-500/20 text-sky-300 border border-sky-500/30">
+                  Світова література
+                </span>
+                <span class="text-xs text-slate-400">${escapeHtml(ext.genre || 'Проза')}${ext.verified === false ? ' <span class="text-amber-400">⚠ не знайдено в Open Library</span>' : ''}</span>
+              </div>
+
+              <h4 class="font-serif-book font-bold text-xl text-white mt-2">
+                «${escapeHtml(ext.title)}»
+              </h4>
+              <p class="text-sm text-sky-300/90 font-serif-book italic mt-0.5">
+                ${escapeHtml(ext.author)} ${ext.year ? `(${ext.year} р.)` : ''}
+              </p>
+
+              <p class="text-xs text-slate-400 mt-2 line-clamp-2">
+                ${escapeHtml(ext.description || '')}
+              </p>
+
+              <p class="text-xs text-slate-300 mt-3 leading-relaxed bg-slate-950/60 p-3 rounded-xl border border-slate-800">
+                <span class="text-sky-400 font-semibold block mb-0.5">Чому варто прочитати:</span>
+                ${escapeHtml(ext.whyRecommended || '')}
+              </p>
+            </div>
+
+            <a
+              href="/open-library/?q=${query}"
+              class="w-full py-2 px-3 rounded-xl bg-sky-600/20 hover:bg-sky-600/30 text-sky-200 border border-sky-500/40 text-xs font-semibold flex items-center justify-center space-x-1.5 transition"
+            >
+              <i data-lucide="external-link" class="w-3.5 h-3.5 text-sky-400"></i>
+              <span>Знайти та завантажити з Open Library</span>
+            </a>
+          </div>
+        `;
+      });
+
+      html += `</div></div>`;
+    }
+
+    container.innerHTML = html;
+    if (window.lucide) {
+      lucide.createIcons();
+    }
+  }
+
+  function escapeHtml(text) {
+    if (!text) return '';
+    return String(text)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
+
+  // Highlight initial mood on page load
+  document.addEventListener('DOMContentLoaded', () => {
+    const initMood = document.getElementById('hiddenMood').value;
+    document.querySelectorAll('.mood-btn').forEach(btn => {
+      if (btn.dataset.mood === initMood) {
+        selectMood(initMood, btn);
+      }
+    });
+  });
+</script>
+{% endblock %}

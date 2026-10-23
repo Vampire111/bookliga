@@ -1,0 +1,125 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto space-y-8 pb-16">
+  <!-- Header -->
+  <div class="rounded-3xl bg-gradient-to-br from-emerald-950/60 via-slate-900 to-slate-950 border border-emerald-800/40 p-6 sm:p-10 shadow-2xl relative overflow-hidden">
+    <div class="absolute right-0 top-0 w-80 h-80 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none -mr-16 -mt-16"></div>
+    <div class="relative z-10 space-y-4">
+      <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-xs font-semibold">
+        <i data-lucide="globe" class="w-3.5 h-3.5"></i>
+        <span>Інтеграція з Open Library (Internet Archive)</span>
+      </div>
+
+      <h1 class="font-serif-book text-3xl sm:text-4xl font-bold text-white tracking-tight">
+        Світовий каталог мільйонів книг
+      </h1>
+
+      <p class="text-slate-300 text-sm max-w-2xl leading-relaxed">
+        Шукайте будь-яку книгу у відкритій бібліотеці Open Library за назвою, автором чи темою та додавайте її до свого каталогу в один клік.
+      </p>
+
+      <div class="pt-2 flex flex-wrap items-center gap-2">
+        <span class="text-xs text-slate-400 font-medium">Швидкий пошук:</span>
+        <a href="?q=Леся+Українка" class="text-xs px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-emerald-950/40 text-slate-300 border border-slate-700 transition">Леся Українка</a>
+        <a href="?q=Сергій+Жадан" class="text-xs px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-emerald-950/40 text-slate-300 border border-slate-700 transition">Сергій Жадан</a>
+        <a href="?q=George+Orwell" class="text-xs px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-emerald-950/40 text-slate-300 border border-slate-700 transition">George Orwell</a>
+        <a href="?q=Stephen+King" class="text-xs px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-emerald-950/40 text-slate-300 border border-slate-700 transition">Stephen King</a>
+        <a href="?q=Frank+Herbert" class="text-xs px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-emerald-950/40 text-slate-300 border border-slate-700 transition">Frank Herbert</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Search Input -->
+  <div class="bg-slate-900 rounded-2xl border border-slate-800 p-4 sm:p-5 shadow-xl">
+    <form method="GET" action="{% url 'open_library' %}" class="flex gap-3" onsubmit="handleSearchSubmit()">
+      <div class="relative flex-1">
+        <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2"></i>
+        <input type="text" name="q" value="{{ query }}" placeholder="Введіть назву книги або автора (наприклад: Гаррі Поттер, Dune, Orwell)..." class="w-full bg-slate-950 border border-slate-700 rounded-xl pl-10 pr-4 py-3 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-emerald-500">
+      </div>
+      <button id="searchBtn" type="submit" class="px-6 py-3 rounded-xl font-semibold text-xs bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg transition flex items-center space-x-1.5 shrink-0">
+        <i data-lucide="search" class="w-4 h-4"></i>
+        <span>Знайти у світі</span>
+      </button>
+    </form>
+  </div>
+
+  <!-- Results -->
+  {% if results %}
+    <div class="space-y-4">
+      <div class="flex justify-between items-center text-xs text-slate-400">
+        <span>Знайдено книг: <strong>{{ results|length }}</strong></span>
+        <span>Джерело: Open Library API</span>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        {% for b in results %}
+          <div class="bg-slate-900 rounded-2xl border border-slate-800 overflow-hidden flex flex-col justify-between shadow-lg hover:border-slate-700 hover:shadow-2xl transition">
+            <div class="h-56 bg-slate-950 relative overflow-hidden flex items-center justify-center">
+              {% if b.cover_url %}
+                <img src="{{ b.cover_url }}" alt="{{ b.title }}" class="w-full h-full object-cover" loading="lazy" onerror="this.onerror=null; this.classList.add('hidden'); document.getElementById('ol-fallback-{{ forloop.counter }}').classList.remove('hidden');">
+              {% endif %}
+              <div id="ol-fallback-{{ forloop.counter }}" class="w-full h-full bg-slate-800 p-4 flex flex-col justify-center text-center {% if b.cover_url %}hidden{% endif %}">
+                <span class="font-serif-book font-bold text-amber-200 text-sm line-clamp-2">{{ b.title }}</span>
+                <span class="text-xs text-slate-400 mt-1">{{ b.author }}</span>
+              </div>
+              <span class="absolute top-2 right-2 text-[10px] px-2 py-0.5 rounded-full bg-slate-950/80 text-slate-300 border border-slate-700">
+                {{ b.year|default:"—" }} р.
+              </span>
+            </div>
+
+            <div class="p-4 flex-1 flex flex-col justify-between space-y-3">
+              <div>
+                <h4 class="font-serif-book font-bold text-base text-slate-100 line-clamp-2">{{ b.title }}</h4>
+                <p class="text-xs text-slate-400 mt-0.5 line-clamp-1 italic">{{ b.author }}</p>
+                {% if b.subjects %}
+                  <p class="text-[10px] text-slate-500 mt-1.5 line-clamp-1">Теми: {{ b.subjects|join:", " }}</p>
+                {% endif %}
+              </div>
+
+              <div class="pt-2 border-t border-slate-800">
+                {% if b.title in existing_titles %}
+                  <div class="text-xs text-emerald-400 font-semibold py-2 text-center bg-emerald-500/10 rounded-xl border border-emerald-500/20 flex items-center justify-center space-x-1.5">
+                    <i data-lucide="check" class="w-3.5 h-3.5"></i>
+                    <span>Вже в каталозі</span>
+                  </div>
+                {% else %}
+                  <form method="POST" action="{% url 'import_book' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="title" value="{{ b.title }}">
+                    <input type="hidden" name="author" value="{{ b.author }}">
+                    <input type="hidden" name="year" value="{{ b.year|default:'' }}">
+                    <input type="hidden" name="pages" value="{{ b.pages|default:'' }}">
+                    <input type="hidden" name="cover_url" value="{{ b.cover_url|default:'' }}">
+                    <input type="hidden" name="isbn" value="{{ b.isbn|default:'' }}">
+                    <input type="hidden" name="subjects" value="{{ b.subjects|join:', ' }}">
+                    <input type="hidden" name="key" value="{{ b.key|default:'' }}">
+                    <button type="submit" class="w-full py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow transition flex items-center justify-center space-x-1.5">
+                      <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                      <span>Додати в мій каталог</span>
+                    </button>
+                  </form>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  {% elif query %}
+    <div class="text-center py-16 bg-slate-900/50 rounded-2xl border border-slate-800 p-8 space-y-2">
+      <i data-lucide="globe" class="w-12 h-12 text-slate-600 mx-auto"></i>
+      <h3 class="font-serif-book font-bold text-lg text-white">Нічого не знайдено за запитом «{{ query }}»</h3>
+      <p class="text-xs text-slate-400">Спробуйте ввести лише прізвище автора латиницею або українською.</p>
+    </div>
+  {% endif %}
+</div>
+
+<script>
+  function handleSearchSubmit() {
+    const btn = document.getElementById('searchBtn');
+    btn.disabled = true;
+    btn.innerHTML = `<svg class="animate-spin h-3.5 w-3.5 text-white shrink-0" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg><span>Шукаю...</span>`;
+  }
+</script>
+{% endblock %}

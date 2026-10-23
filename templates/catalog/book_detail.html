@@ -1,0 +1,197 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-8 pb-16">
+  <!-- Breadcrumb -->
+  <div class="flex items-center space-x-2 text-xs text-slate-400">
+    <a href="{% url 'catalog' %}" class="hover:text-amber-400 flex items-center space-x-1">
+      <i data-lucide="library" class="w-3.5 h-3.5"></i>
+      <span>Каталог</span>
+    </a>
+    <span>/</span>
+    {% if book.category %}
+      <a href="{% url 'catalog' %}?category={{ book.category.slug }}" class="hover:text-amber-400">{{ book.category.name }}</a>
+      <span>/</span>
+    {% endif %}
+    <span class="text-slate-200 truncate font-medium">«{{ book.title }}»</span>
+  </div>
+
+  <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-8">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+      <!-- Left Column: Cover & Book Meta -->
+      <div class="space-y-4">
+        <div class="h-80 w-full rounded-2xl overflow-hidden shadow-2xl relative bg-slate-950 border border-slate-800">
+          {% if book.cover_url %}
+            <img src="{{ book.cover_url }}" alt="{{ book.title }}" class="w-full h-full object-cover" onerror="this.onerror=null; this.classList.add('hidden'); document.getElementById('detail-fallback').classList.remove('hidden');">
+          {% endif %}
+
+          <div id="detail-fallback" class="w-full h-full bg-gradient-to-br from-amber-950 via-stone-900 to-slate-950 p-6 flex flex-col justify-between {% if book.cover_url %}hidden{% endif %}">
+            <span class="text-xs text-amber-300 uppercase tracking-widest">{{ book.genre }}</span>
+            <div>
+              <h3 class="font-serif-book font-bold text-2xl text-amber-100">{{ book.title }}</h3>
+              <p class="text-sm text-amber-300/80 italic mt-2">{{ book.author }}</p>
+            </div>
+            <span class="text-xs text-amber-200/60">{{ book.year|default:"—" }} р.</span>
+          </div>
+        </div>
+
+        <!-- Meta info -->
+        <div class="p-4 rounded-xl bg-slate-950/80 border border-slate-800 space-y-2.5 text-xs text-slate-300">
+          {% if book.year %}
+            <div class="flex justify-between">
+              <span class="text-slate-500">Рік:</span>
+              <span class="font-semibold">{{ book.year }}</span>
+            </div>
+          {% endif %}
+          {% if book.publisher %}
+            <div class="flex justify-between space-x-3">
+              <span class="text-slate-500 shrink-0">Видавництво:</span>
+              <span class="font-semibold text-right">{{ book.publisher }}</span>
+            </div>
+          {% endif %}
+          {% if book.translator %}
+            <div class="flex justify-between space-x-3">
+              <span class="text-slate-500 shrink-0">Перекладач:</span>
+              <span class="font-semibold text-right">{{ book.translator }}</span>
+            </div>
+          {% endif %}
+          {% if book.series %}
+            <div class="flex justify-between space-x-3">
+              <span class="text-slate-500 shrink-0">Серія:</span>
+              <span class="font-semibold text-right">{{ book.series }}</span>
+            </div>
+          {% endif %}
+          {% if book.cover_type %}
+            <div class="flex justify-between">
+              <span class="text-slate-500">Обкладинка:</span>
+              <span class="font-semibold">{{ book.cover_type }}</span>
+            </div>
+          {% endif %}
+          {% if book.book_format %}
+            <div class="flex justify-between">
+              <span class="text-slate-500">Формат:</span>
+              <span class="font-semibold">{{ book.book_format }}</span>
+            </div>
+          {% endif %}
+          <div class="flex justify-between">
+            <span class="text-slate-500">Сторінок:</span>
+            <span class="font-semibold">{{ book.pages|default:"—" }}</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-slate-500">Жанр:</span>
+            <span class="font-semibold">{{ book.genre }}</span>
+          </div>
+          {% if book.isbn %}
+            <div class="flex justify-between">
+              <span class="text-slate-500">ISBN:</span>
+              <span class="font-mono text-[11px]">{{ book.isbn }}</span>
+            </div>
+          {% endif %}
+        </div>
+
+        <!-- AI Assistant Action Button -->
+        <button onclick="openChatWithBookContext('{{ book.title|escapejs }}', '{{ book.author|escapejs }}')" class="w-full py-2.5 rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-slate-950 text-xs font-semibold shadow-md flex items-center justify-center space-x-2 transition">
+          <i data-lucide="sparkles" class="w-4 h-4"></i>
+          <span>Запитати ШІ про цю книгу</span>
+        </button>
+
+        <!-- Статус на полиці -->
+        <div>
+          <label for="shelfStatus" class="block text-xs font-semibold text-slate-400 mb-1.5">Моя полиця:</label>
+          <select id="shelfStatus" onchange="changeShelfStatus({{ book.id }}, this.value)" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-amber-500">
+            {% for value, label in shelf_choices %}
+              <option value="{{ value }}" {% if value == shelf_status %}selected{% endif %}>{% if value == 'none' %}Не на полиці{% else %}{{ label }}{% endif %}</option>
+            {% endfor %}
+          </select>
+          <p id="shelfSaved" class="text-[11px] text-emerald-400 mt-1 hidden">Збережено</p>
+        </div>
+
+        <!-- Open Library Search -->
+        <a href="{% url 'open_library' %}?q={{ book.title|urlencode }}+{{ book.author|urlencode }}" class="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold text-center block transition border border-slate-700 flex items-center justify-center space-x-1.5">
+          <i data-lucide="globe" class="w-3.5 h-3.5 text-emerald-400"></i>
+          <span>Знайти видання в Open Library</span>
+        </a>
+      </div>
+
+      <!-- Right Column: Content -->
+      <div class="md:col-span-2 space-y-6">
+        <div>
+          <span class="text-xs font-bold uppercase tracking-wider px-2.5 py-1 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
+            {{ book.category.name|default:book.genre }}
+          </span>
+          <h1 class="font-serif-book font-bold text-3xl sm:text-4xl text-white mt-2">{{ book.title }}</h1>
+          <p class="text-lg text-amber-300 font-serif-book italic mt-1">{{ book.author }}</p>
+        </div>
+
+        <div class="space-y-2">
+          <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-400 flex items-center space-x-1.5">
+            <i data-lucide="book-open" class="w-3.5 h-3.5"></i>
+            <span>Синопсис / Сюжет:</span>
+          </h3>
+          <p class="text-slate-200 text-sm leading-relaxed whitespace-pre-line">{{ book.description }}</p>
+          {% if book.description_source == 'ai' %}
+            <p class="text-xs text-amber-400/80">⚠ Опис згенеровано ШІ на основі його знань і може містити неточності.</p>
+          {% elif book.description_source == 'open_library' %}
+            <p class="text-xs text-slate-500">Джерело опису: {% if book.source_url %}<a href="{{ book.source_url }}" target="_blank" class="underline">Open Library</a>{% else %}Open Library{% endif %} (переклад ШІ).</p>
+          {% elif book.description_source == 'store' and book.source_url %}
+            <p class="text-xs text-slate-500">Джерело опису: <a href="{{ book.source_url }}" target="_blank" class="underline">книжковий магазин</a>.</p>
+          {% endif %}
+        </div>
+
+        {% if keywords_list %}
+          <div class="space-y-2">
+            <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-400 flex items-center space-x-1.5">
+              <i data-lucide="tag" class="w-3.5 h-3.5"></i>
+              <span>Маркери сюжету для ШІ:</span>
+            </h3>
+            <div class="flex flex-wrap gap-1.5">
+              {% for kw in keywords_list %}
+                <span class="text-xs px-2.5 py-1 rounded-lg bg-slate-800 text-amber-200 border border-slate-700">#{{ kw }}</span>
+              {% endfor %}
+            </div>
+          </div>
+        {% endif %}
+
+      </div>
+    </div>
+  </div>
+
+  {% if similar_books %}
+  <section class="space-y-4">
+    <h2 class="font-serif-book font-bold text-xl text-white flex items-center space-x-2">
+      <i data-lucide="sparkles" class="w-5 h-5 text-indigo-400"></i>
+      <span>Схожі за змістом книги</span>
+    </h2>
+    <p class="text-xs text-slate-500">Підібрано семантичним пошуком: за близькістю змісту анотацій, а не за збігом жанру чи слів.</p>
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+      {% for b in similar_books %}
+        <a href="{% url 'book_detail' b.id %}" class="group bg-slate-900/90 rounded-xl border border-slate-800 hover:border-indigo-500/50 overflow-hidden transition">
+          <div class="h-40 bg-slate-950 flex items-center justify-center overflow-hidden">
+            {% if b.cover_url %}
+              <img src="{{ b.cover_url }}" alt="{{ b.title }}" class="w-full h-full object-cover group-hover:scale-105 transition" loading="lazy">
+            {% else %}
+              <span class="text-3xl">📖</span>
+            {% endif %}
+          </div>
+          <div class="p-2.5">
+            <p class="text-xs font-semibold text-slate-100 line-clamp-2">{{ b.title }}</p>
+            <p class="text-[11px] text-slate-400 mt-0.5 line-clamp-1">{{ b.author }}</p>
+          </div>
+        </a>
+      {% endfor %}
+    </div>
+  </section>
+{% endif %}
+</div>
+
+<script>
+  async function changeShelfStatus(bookId, status) {
+    const res = await fetch("{% url 'update_status' %}", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ book_id: bookId, status: status })
+    });
+    if (res.ok) document.getElementById('shelfSaved').classList.remove('hidden');
+  }
+</script>
+{% endblock %}

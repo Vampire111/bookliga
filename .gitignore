@@ -1,0 +1,27 @@
+.env
+db.sqlite3
+db.backup_*.sqlite3
+
+__pycache__/
+*.py[cod]
+venv/
+.venv/
+env/
+
+.idea/
+.vscode/
+
+staticfiles/
+
+# дані з парсера (не публікуємо)
+all_book_links.txt
+bookye_books.jsonl
+bookye_errors.txt
+
+# локальні чернетки
+_local/
+*.zip
+
+# парсер «Книгарні Є» (локально)
+scraper/
+catalog/management/commands/import_bookye.py

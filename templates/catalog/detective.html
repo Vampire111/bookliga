@@ -1,0 +1,298 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-8 pb-16">
+  <!-- Hero Header -->
+  <div class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-950 via-slate-900 to-slate-950 border border-indigo-800/40 p-6 sm:p-10 shadow-2xl">
+    <div class="absolute top-0 right-0 w-96 h-96 bg-indigo-600/10 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20"></div>
+    <div class="relative z-10 space-y-4">
+      <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-xs font-semibold">
+        <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+        <span>Інтелектуальний розпізнавач сюжетів</span>
+      </div>
+
+      <h1 class="font-serif-book text-3xl sm:text-4xl lg:text-5xl font-bold text-white tracking-tight leading-tight">
+        Впізнай книгу за описом сюжету
+      </h1>
+
+      <p class="text-slate-300 text-sm sm:text-base max-w-2xl leading-relaxed">
+        Пам’ятаєте лише уривок історії, незвичайного персонажа чи місце подій? 
+        Опишіть це своїми словами. Наш ШІ-детектив зіставить деталі з 
+        <span class="text-amber-400 font-medium">локальним каталогом</span>, а якщо книги там немає — 
+        знайде її у <span class="text-sky-400 font-medium">світовій літературі</span> та підключить 
+        <span class="text-emerald-400 font-medium">Open Library</span> для миттєвого імпорту.
+      </p>
+
+      <!-- Quick sample prompts -->
+      <div class="pt-2">
+        <span class="text-xs text-slate-400 font-medium block mb-2">Швидкий тест — спробуйте один із прикладів:</span>
+        <div class="flex flex-wrap gap-2">
+          <button type="button" onclick="setAndRunPlot('Сільський юнак прибуває на пароплаві підкорювати Київ 1920-х років, живе у знайомих, починає писати оповідання і поступово стає популярним столичним письменником, але переживає кризу стосунків.')" class="text-xs px-3 py-1.5 rounded-xl bg-amber-950/40 hover:bg-amber-900/50 text-amber-200 border border-amber-800/40 flex items-center space-x-1.5 transition">
+            <span class="font-semibold">Місто</span>
+          </button>
+          <button type="button" onclick="setAndRunPlot('Пустельна піщана планета, де видобувають найціннішу у всесвіті речовину прянощі. Юного спадкоємця герцогського роду зраджують вороги, він тікає до пустельних мешканців і вчиться осідлати велетенських хробаків.')" class="text-xs px-3 py-1.5 rounded-xl bg-amber-950/40 hover:bg-amber-900/50 text-amber-200 border border-amber-800/40 flex items-center space-x-1.5 transition">
+            <span class="font-semibold">Дюна</span>
+          </button>
+          <button type="button" onclick="setAndRunPlot('Молодий український інженер на ходу вистрибує з арештантського ешелону смерті ОГПУ, що везе засуджених у Сибір. Він блукає дикою тайгою і потрапляє до сім’ї мисливців на тигрів.')" class="text-xs px-3 py-1.5 rounded-xl bg-amber-950/40 hover:bg-amber-900/50 text-amber-200 border border-amber-800/40 flex items-center space-x-1.5 transition">
+            <span class="font-semibold">Тигролови</span>
+          </button>
+          <button type="button" onclick="setAndRunPlot('Середньовічний італійський бенедиктинський монастир, де стається серія загадкових вбивств ченців. Францисканський чернець Вільгельм Баскервільський разом із юним учнем розслідують таємницю забороненої отруєної книги в лабіринті бібліотеки.')" class="text-xs px-3 py-1.5 rounded-xl bg-indigo-950/40 hover:bg-indigo-900/50 text-indigo-200 border border-indigo-800/40 flex items-center space-x-1.5 transition">
+            <span class="font-semibold">Ім’я рози</span>
+          </button>
+          <button type="button" onclick="setAndRunPlot('Хлопчик-сирота живе під сходами в будинку суворих родичів, аж поки на його одинадцятий день народження напіввелетень не повідомляє, що він чарівник і запрошує до таємної магічної школи на потязі з платформи 9 і 3/4.')" class="text-xs px-3 py-1.5 rounded-xl bg-indigo-950/40 hover:bg-indigo-900/50 text-indigo-200 border border-indigo-800/40 flex items-center space-x-1.5 transition">
+            <span class="font-semibold">Гаррі Поттер</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Form -->
+  <div class="bg-slate-900/90 rounded-2xl border border-slate-800 p-5 sm:p-6 shadow-xl space-y-4">
+    <label class="block text-sm font-semibold text-slate-200">
+      Опишіть сюжет або окремі спогади про книгу:
+    </label>
+    <textarea id="plotInput" rows="4" placeholder="Наприклад: пам'ятаю книгу, де люди спалюють друковані книги при температурі 451 градус, а пожежник закохується в сусідку і починає сам ховати книжки..." class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 text-sm leading-relaxed"></textarea>
+
+    <div class="flex flex-col sm:flex-row items-center justify-between gap-3 pt-1">
+      <div class="flex items-center space-x-2 text-xs text-slate-400">
+        <i data-lucide="help-circle" class="w-4 h-4 text-slate-500"></i>
+        <span>Можна писати як детально, так і нечітко (імена, міста, кульмінація)</span>
+      </div>
+
+      <div class="flex items-center space-x-2 w-full sm:w-auto justify-end">
+        <button id="clearBtn" type="button" onclick="clearPlotInput()" class="hidden px-3 py-2 text-xs text-slate-400 hover:text-slate-200 transition">
+          Очистити
+        </button>
+
+        <!-- Detect Button with loader state -->
+        <button id="detectBtn" type="button" onclick="runPlotDetection()" class="flex items-center justify-center space-x-2 px-6 py-2.5 rounded-xl font-semibold text-sm transition-all shadow-lg bg-gradient-to-r from-indigo-600 via-indigo-500 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto">
+          <i id="btnIcon" data-lucide="sparkles" class="w-4 h-4"></i>
+          <span id="btnText">Розпізнати книгу</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Error display -->
+  <div id="detectError" class="hidden p-4 rounded-xl bg-rose-950/60 border border-rose-800 text-rose-200 text-sm flex items-start space-x-3">
+    <i data-lucide="alert-circle" class="w-5 h-5 text-rose-400 shrink-0 mt-0.5"></i>
+    <div>
+      <p class="font-semibold">Помилка розпізнавання</p>
+      <p id="detectErrorText" class="text-rose-300 text-xs mt-1"></p>
+    </div>
+  </div>
+
+  <!-- Live Animated Result Container -->
+  <div id="detectResult" class="hidden bg-slate-900 rounded-2xl border border-slate-700/80 p-6 sm:p-8 shadow-2xl space-y-6 transition-all duration-300">
+    <!-- Header of Result -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
+      <div class="flex items-center space-x-3">
+        <div id="resultBadge" class="px-3 py-1.5 rounded-full text-xs font-bold flex items-center space-x-1.5 shadow-sm"></div>
+        <div class="text-xs text-slate-400">
+          Точність збігу: <span id="resultConfidence" class="font-bold text-amber-400"></span>
+        </div>
+      </div>
+
+      <div id="resultActionContainer"></div>
+    </div>
+
+    <!-- Presentation -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div class="md:col-span-2 space-y-3">
+        <div>
+          <h2 id="resultTitle" class="font-serif-book text-2xl sm:text-3xl font-bold text-white"></h2>
+          <p id="resultAuthor" class="text-base sm:text-lg text-amber-300 font-serif-book font-medium mt-1"></p>
+          <p id="resultOriginalTitle" class="text-xs text-slate-400 italic mt-0.5 hidden"></p>
+        </div>
+
+        <div class="p-4 rounded-xl bg-slate-950/80 border border-slate-800 space-y-2">
+          <span class="text-xs font-semibold uppercase tracking-wider text-indigo-400">Чому це саме ця книга:</span>
+          <p id="resultMatchExplanation" class="text-sm text-slate-200 leading-relaxed"></p>
+        </div>
+
+        <div id="plotPointsBlock" class="space-y-2 pt-2">
+          <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Елементи сюжету, які збіглися:</span>
+          <div id="plotPointsList" class="grid grid-cols-1 sm:grid-cols-2 gap-2"></div>
+        </div>
+      </div>
+
+      <div class="space-y-4">
+        <div class="p-4 rounded-xl bg-slate-950/80 border border-slate-800">
+          <h4 class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Короткий синопсис</h4>
+          <p id="resultSummary" class="text-xs text-slate-300 leading-relaxed"></p>
+        </div>
+
+        <div class="p-4 rounded-xl bg-gradient-to-br from-indigo-950/40 to-slate-950 border border-indigo-900/40">
+          <h4 class="text-xs font-semibold uppercase tracking-wider text-indigo-300 flex items-center space-x-1.5 mb-2">
+            <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+            <span>Коментар літературного ШІ</span>
+          </h4>
+          <p id="resultAiCommentary" class="text-xs text-slate-300 leading-relaxed italic"></p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Alternative Candidates Block -->
+    <div id="altCandidatesBlock" class="hidden pt-4 border-t border-slate-800 space-y-3">
+      <h4 class="text-xs font-semibold uppercase tracking-wider text-slate-400">
+        Можливі альтернативні версії або схожі за сюжетом книги:
+      </h4>
+      <div id="altCandidatesList" class="grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  function setAndRunPlot(text) {
+    document.getElementById('plotInput').value = text;
+    document.getElementById('clearBtn').classList.remove('hidden');
+    runPlotDetection();
+  }
+
+  function clearPlotInput() {
+    document.getElementById('plotInput').value = '';
+    document.getElementById('clearBtn').classList.add('hidden');
+    document.getElementById('detectResult').classList.add('hidden');
+    document.getElementById('detectError').classList.add('hidden');
+  }
+
+  document.getElementById('plotInput').addEventListener('input', function() {
+    if (this.value.trim()) {
+      document.getElementById('clearBtn').classList.remove('hidden');
+    } else {
+      document.getElementById('clearBtn').classList.add('hidden');
+    }
+  });
+
+  async function runPlotDetection() {
+    const input = document.getElementById('plotInput');
+    const text = input.value.trim();
+    if (!text) return;
+
+    const btn = document.getElementById('detectBtn');
+    const btnIcon = document.getElementById('btnIcon');
+    const btnText = document.getElementById('btnText');
+    const resultBox = document.getElementById('detectResult');
+    const errorBox = document.getElementById('detectError');
+    const errorText = document.getElementById('detectErrorText');
+
+    // Set Loading State with animated spinner
+    btn.disabled = true;
+    btn.innerHTML = `<svg class="animate-spin h-4 w-4 text-white shrink-0" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg><span>ШІ розслідує...</span>`;
+    errorBox.classList.add('hidden');
+
+    try {
+      const res = await fetch("{% url 'identify_ajax' %}", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ description: text })
+      });
+      const data = await res.json();
+
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      renderDetectiveResult(data);
+    } catch (err) {
+      errorText.innerText = err.message || 'Сталася помилка при аналізі сюжету';
+      errorBox.classList.remove('hidden');
+      resultBox.classList.add('hidden');
+      if (window.lucide) lucide.createIcons();
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = `<i data-lucide="sparkles" class="w-4 h-4"></i><span>Розпізнати книгу</span>`;
+      if (window.lucide) lucide.createIcons();
+    }
+  }
+
+  function renderDetectiveResult(data) {
+    const r = data.identifiedBook;
+    const resultBox = document.getElementById('detectResult');
+    const badge = document.getElementById('resultBadge');
+    const conf = document.getElementById('resultConfidence');
+    const actContainer = document.getElementById('resultActionContainer');
+
+    conf.innerText = (r.confidence || 95) + "%";
+
+    if (r.inCatalog) {
+      badge.className = "px-3 py-1.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-xs font-bold flex items-center space-x-1.5 shadow-sm";
+      badge.innerHTML = `<i data-lucide="check-circle" class="w-4 h-4 text-emerald-400"></i><span>ЗНАЙДЕНО В КАТАЛОЗІ</span>`;
+
+      if (r.db_id) {
+        actContainer.innerHTML = `<a href="/book/${r.db_id}/" class="flex items-center space-x-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold shadow-md transition"><i data-lucide="book-open" class="w-4 h-4"></i><span>Відкрити книгу в каталозі →</span></a>`;
+      } else {
+        actContainer.innerHTML = `<a href="{% url 'catalog' %}?q=${encodeURIComponent(r.title)}" class="flex items-center space-x-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold shadow-md transition"><i data-lucide="book-open" class="w-4 h-4"></i><span>Знайти в каталозі →</span></a>`;
+      }
+    } else {
+      badge.className = "px-3 py-1.5 rounded-full bg-sky-500/20 text-sky-300 border border-sky-500/40 text-xs font-bold flex items-center space-x-1.5 shadow-sm";
+      badge.innerHTML = `<i data-lucide="compass" class="w-4 h-4 text-sky-400"></i><span>ЗНАЙДЕНО У СВІТОВІЙ ЛІТЕРАТУРІ</span>`;
+      if (r.verified === false) {
+        // Книгу не вдалося знайти в Open Library — можливо, ШІ помилився або вигадав її
+        badge.className = "px-3 py-1.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 text-xs font-bold flex items-center space-x-1.5 shadow-sm";
+        badge.innerHTML = `<i data-lucide="alert-triangle" class="w-4 h-4 text-amber-400"></i><span>НЕ ПІДТВЕРДЖЕНО В OPEN LIBRARY — ПЕРЕВІРТЕ</span>`;
+      }
+
+      const q = r.openLibraryQuery || (r.title + " " + r.author);
+      actContainer.innerHTML = `<a href="{% url 'open_library' %}?q=${encodeURIComponent(q)}" class="flex items-center space-x-2 px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white rounded-xl text-xs font-semibold shadow-md transition"><i data-lucide="external-link" class="w-4 h-4"></i><span>Шукати в Open Library та імпортувати →</span></a>`;
+    }
+
+    document.getElementById('resultTitle').innerText = "«" + r.title + "»";
+    document.getElementById('resultAuthor').innerText = r.author + (r.year ? ` (${r.year} р.)` : '');
+
+    const origEl = document.getElementById('resultOriginalTitle');
+    if (r.originalTitle && r.originalTitle !== r.title) {
+      origEl.innerText = "Оригінальна назва: " + r.originalTitle;
+      origEl.classList.remove('hidden');
+    } else {
+      origEl.classList.add('hidden');
+    }
+
+    document.getElementById('resultMatchExplanation').innerText = r.matchExplanation;
+    document.getElementById('resultSummary').innerText = r.summary;
+    document.getElementById('resultAiCommentary').innerText = "«" + (data.aiCommentary || '') + "»";
+
+    // Matching plot points
+    const pointsList = document.getElementById('plotPointsList');
+    pointsList.innerHTML = '';
+    (r.matchingPlotPoints || []).forEach(pt => {
+      const d = document.createElement('div');
+      d.className = "flex items-start space-x-2 text-xs text-slate-300 bg-slate-800/60 p-2.5 rounded-lg border border-slate-700/60";
+      d.innerHTML = `<i data-lucide="check-circle" class="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5"></i><span>${pt}</span>`;
+      pointsList.appendChild(d);
+    });
+
+    // Alternative Candidates
+    const altBlock = document.getElementById('altCandidatesBlock');
+    const altList = document.getElementById('altCandidatesList');
+    altList.innerHTML = '';
+    if (data.alternativeCandidates && data.alternativeCandidates.length > 0) {
+      data.alternativeCandidates.forEach(alt => {
+        const d = document.createElement('div');
+        d.className = "p-3 rounded-xl bg-slate-950/60 border border-slate-800 flex items-start justify-between space-x-2 text-xs";
+        const linkHtml = alt.inCatalog && alt.localBookId
+          ? `<a href="/book/${alt.localBookId}/" class="text-[11px] text-amber-400 hover:text-amber-300 shrink-0 font-medium ml-2">В базі →</a>`
+          : `<a href="{% url 'open_library' %}?q=${encodeURIComponent(alt.title + ' ' + alt.author)}" class="text-[11px] text-sky-400 hover:text-sky-300 shrink-0 font-medium ml-2">Шукати →</a>`;
+        d.innerHTML = `
+          <div>
+            <span class="font-serif-book font-bold text-slate-200">«${alt.title}»</span>
+            <span class="text-slate-400 ml-1.5 font-medium">— ${alt.author}</span>
+            ${alt.verified === false ? '<span class="text-amber-400 ml-1.5 text-[10px]">⚠ не підтверджено</span>' : ''}
+            <p class="text-slate-400 mt-1 text-[11px]">${alt.reason}</p>
+          </div>
+          ${linkHtml}
+        `;
+        altList.appendChild(d);
+      });
+      altBlock.classList.remove('hidden');
+    } else {
+      altBlock.classList.add('hidden');
+    }
+
+    resultBox.classList.remove('hidden');
+    resultBox.scrollIntoView({ behavior: 'smooth' });
+    if (window.lucide) lucide.createIcons();
+  }
+</script>
+{% endblock %}
